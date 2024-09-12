@@ -2,6 +2,50 @@ import pandas as pd
 import instaloader
 import streamlit as st
 from datetime import datetime, timedelta
+import sqlite3
+
+# Funzione per la creazione e connessione al database
+def create_connection():
+    conn = sqlite3.connect('instagram_profiles.db')
+    return conn
+
+# Funzione per creare la tabella degli username (se non esiste già)
+def create_table():
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS profiles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL
+    )
+    ''')
+    conn.commit()
+    conn.close()
+
+# Funzione per ottenere tutti gli username dal database
+def get_usernames():
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT username FROM profiles")
+    rows = cursor.fetchall()
+    conn.close()
+    return [row[0] for row in rows]
+
+# Funzione per aggiungere un username al database
+def add_username(username):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO profiles (username) VALUES (?)", (username,))
+    conn.commit()
+    conn.close()
+
+# Funzione per rimuovere un username dal database
+def remove_username(username):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM profiles WHERE username = ?", (username,))
+    conn.commit()
+    conn.close()
 
 # Funzione per ottenere la data dell'ultimo post pubblicato negli ultimi 2 mesi
 def get_last_post_date(username):
@@ -39,14 +83,31 @@ def is_older_than_week(days_passed):
 # Creazione dell'interfaccia con Streamlit
 st.title('Controlla gli ultimi post su Instagram')
 
-# Input per gli username
-usernames_input = st.text_input('Inserisci gli username di Instagram separati da virgola:')
+# Creazione della tabella se non esiste già
+create_table()
 
-# Bottone per eseguire il controllo
+# Sezione per aggiungere un nuovo username
+new_username = st.text_input('Aggiungi un nuovo username di Instagram:')
+if st.button('Aggiungi'):
+    if new_username:
+        add_username(new_username)
+        st.success(f"Username {new_username} aggiunto.")
+    else:
+        st.error("Inserisci un nome utente valido.")
+
+# Sezione per rimuovere un username
+remove_username_input = st.text_input('Rimuovi un username di Instagram:')
+if st.button('Rimuovi'):
+    if remove_username_input:
+        remove_username(remove_username_input)
+        st.success(f"Username {remove_username_input} rimosso.")
+    else:
+        st.error("Inserisci un nome utente valido da rimuovere.")
+
+# Bottone per eseguire il controllo degli username nel database
 if st.button('Controlla'):
-    if usernames_input:
-        usernames = [username.strip() for username in usernames_input.split(',')]
-        
+    usernames = get_usernames()
+    if usernames:
         # Barra di progresso
         progress_bar = st.progress(0)
         total_usernames = len(usernames)
@@ -66,5 +127,4 @@ if st.button('Controlla'):
             # Aggiorna la barra di progresso
             progress_bar.progress((idx + 1) / total_usernames)
     else:
-        st.write("Per favore, inserisci almeno un nome utente.")
-
+        st.write("Non ci sono username nel database.")
