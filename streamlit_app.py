@@ -55,37 +55,18 @@ st.markdown("""
         margin-bottom: 50px;
         color: #8e6d7a;
     }
-    .results-grid {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 15px;
-        justify-items: center;
-        margin-top: 30px;
-    }
-    .result-box {
-        width: 100px;
-        height: 80px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        border-radius: 10px;
-        font-size: 12px;
-        font-weight: bold;
-        text-align: center;
-        padding: 5px;
-    }
-    .green-box {
-        background-color: #90EE90;
-        color: black;
-    }
-    .red-box {
-        background-color: #FF6347;
-        color: white;
-    }
     .center-button {
         display: flex;
         justify-content: center;
         margin-bottom: 30px;
+    }
+    .red-text {
+        color: #FF6347;
+        font-weight: bold;
+    }
+    .green-text {
+        color: #90EE90;
+        font-weight: bold;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -103,23 +84,20 @@ with st.container():
             # Barra di stato
             progress = st.progress(0)
             total = len(usernames)
-            
-            st.markdown('<div class="results-grid">', unsafe_allow_html=True)
 
             for idx, username in enumerate(usernames):
                 post_date = get_last_post_date(username)
                 if post_date:
                     days_passed = days_since_post(post_date)
                     if is_older_than_week(days_passed):
-                        st.markdown(f'<div class="result-box red-box">{username}<br>{days_passed} giorni</div>', unsafe_allow_html=True)
+                        st.markdown(f'<p class="red-text">{username}: {days_passed} giorni dall\'ultimo post</p>', unsafe_allow_html=True)
                     else:
-                        st.markdown(f'<div class="result-box green-box">{username}<br>{days_passed} giorni</div>', unsafe_allow_html=True)
+                        st.markdown(f'<p class="green-text">{username}: {days_passed} giorni dall\'ultimo post</p>', unsafe_allow_html=True)
                 else:
-                    st.markdown(f'<div class="result-box red-box">{username}<br>Nessun post recente</div>', unsafe_allow_html=True)
+                    st.markdown(f'<p class="red-text">{username}: Nessun post recente</p>', unsafe_allow_html=True)
 
                 # Aggiornamento barra di caricamento
                 progress.progress((idx + 1) / total)
 
-            st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.write("Non ci sono username nel database.")
