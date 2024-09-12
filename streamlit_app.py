@@ -53,24 +53,26 @@ st.markdown("""
         font-size: 48px;
         font-weight: bold;
         margin-bottom: 50px;
-        color: #2F4F4F;
+        color: #8e6d7a;
     }
     .results-grid {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
-        gap: 20px;
+        gap: 15px;
         justify-items: center;
         margin-top: 30px;
     }
     .result-box {
-        width: 150px;
-        height: 100px;
+        width: 100px;
+        height: 80px;
         display: flex;
         justify-content: center;
         align-items: center;
         border-radius: 10px;
-        font-size: 16px;
+        font-size: 12px;
         font-weight: bold;
+        text-align: center;
+        padding: 5px;
     }
     .green-box {
         background-color: #90EE90;
@@ -80,29 +82,44 @@ st.markdown("""
         background-color: #FF6347;
         color: white;
     }
+    .center-button {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 30px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 # Titolo principale
 st.markdown('<div class="main-title">Socialab Check Status</div>', unsafe_allow_html=True)
 
-# Bottone per eseguire il controllo degli username nel database
-if st.button('Controlla i profili'):
-    if usernames:
-        st.markdown('<div class="results-grid">', unsafe_allow_html=True)
-        
-        # Visualizza i risultati
-        for username in usernames:
-            post_date = get_last_post_date(username)
-            if post_date:
-                days_passed = days_since_post(post_date)
-                if is_older_than_week(days_passed):
-                    st.markdown(f'<div class="result-box red-box">{username}: {days_passed} giorni</div>', unsafe_allow_html=True)
-                else:
-                    st.markdown(f'<div class="result-box green-box">{username}: {days_passed} giorni</div>', unsafe_allow_html=True)
-            else:
-                st.markdown(f'<div class="result-box red-box">{username}: Nessun post recente</div>', unsafe_allow_html=True)
-                
+# Bottone centrato per eseguire il controllo degli username
+with st.container():
+    st.markdown('<div class="center-button">', unsafe_allow_html=True)
+    if st.button('Controlla i profili'):
         st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        st.write("Non ci sono username nel database.")
+
+        if usernames:
+            # Barra di stato
+            progress = st.progress(0)
+            total = len(usernames)
+            
+            st.markdown('<div class="results-grid">', unsafe_allow_html=True)
+
+            for idx, username in enumerate(usernames):
+                post_date = get_last_post_date(username)
+                if post_date:
+                    days_passed = days_since_post(post_date)
+                    if is_older_than_week(days_passed):
+                        st.markdown(f'<div class="result-box red-box">{username}<br>{days_passed} giorni</div>', unsafe_allow_html=True)
+                    else:
+                        st.markdown(f'<div class="result-box green-box">{username}<br>{days_passed} giorni</div>', unsafe_allow_html=True)
+                else:
+                    st.markdown(f'<div class="result-box red-box">{username}<br>Nessun post recente</div>', unsafe_allow_html=True)
+
+                # Aggiornamento barra di caricamento
+                progress.progress((idx + 1) / total)
+
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.write("Non ci sono username nel database.")
