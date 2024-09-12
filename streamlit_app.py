@@ -45,11 +45,14 @@ usernames_input = st.text_input('Inserisci gli username di Instagram separati da
 # Bottone per eseguire il controllo
 if st.button('Controlla'):
     if usernames_input:
-        # Split degli username separati da virgola
         usernames = [username.strip() for username in usernames_input.split(',')]
         
+        # Barra di progresso
+        progress_bar = st.progress(0)
+        total_usernames = len(usernames)
+        
         # Visualizza i risultati
-        for username in usernames:
+        for idx, username in enumerate(usernames):
             post_date = get_last_post_date(username)
             if post_date:
                 days_passed = days_since_post(post_date)
@@ -59,5 +62,9 @@ if st.button('Controlla'):
                     st.write(f"Sono passati {days_passed} giorni dall'ultimo post di {username}.")
             else:
                 st.write(f"Non ci sono post recenti per {username} (negli ultimi 2 mesi).")
+            
+            # Aggiorna la barra di progresso
+            progress_bar.progress((idx + 1) / total_usernames)
     else:
         st.write("Per favore, inserisci almeno un nome utente.")
+
