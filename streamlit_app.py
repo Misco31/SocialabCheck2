@@ -80,51 +80,101 @@ def days_since_post(date):
 def is_older_than_week(days_passed):
     return days_passed > 7
 
-# Creazione dell'interfaccia con Streamlit
-st.title('Controlla gli ultimi post su Instagram')
-
 # Creazione della tabella se non esiste già
 create_table()
 
-# Sezione per aggiungere un nuovo username
-new_username = st.text_input('Aggiungi un nuovo username di Instagram:')
-if st.button('Aggiungi'):
-    if new_username:
-        add_username(new_username)
-        st.success(f"Username {new_username} aggiunto.")
-    else:
-        st.error("Inserisci un nome utente valido.")
+# Layout della pagina
+st.markdown("""
+    <style>
+    .main-title {
+        text-align: center;
+        font-size: 48px;
+        font-weight: bold;
+        margin-bottom: 50px;
+        color: #2F4F4F;
+    }
+    .results-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        justify-items: center;
+        margin-top: 30px;
+    }
+    .result-box {
+        width: 200px;
+        height: 150px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 10px;
+        font-size: 20px;
+        font-weight: bold;
+    }
+    .green-box {
+        background-color: #90EE90;
+        color: black;
+    }
+    .red-box {
+        background-color: #FF6347;
+        color: white;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-# Sezione per rimuovere un username
-remove_username_input = st.text_input('Rimuovi un username di Instagram:')
-if st.button('Rimuovi'):
-    if remove_username_input:
-        remove_username(remove_username_input)
-        st.success(f"Username {remove_username_input} rimosso.")
-    else:
-        st.error("Inserisci un nome utente valido da rimuovere.")
+# Titolo principale
+st.markdown('<div class="main-title">Socialab Check Status</div>', unsafe_allow_html=True)
 
-# Bottone per eseguire il controllo degli username nel database
-if st.button('Controlla'):
+# Layout con colonne
+col1, col2 = st.columns([1, 3])
+
+# Colonna laterale con il database
+with col1:
+    st.subheader("Gestione del database")
+    
+    # Sezione per aggiungere un nuovo username
+    new_username = st.text_input('Aggiungi un nuovo username di Instagram:')
+    if st.button('Aggiungi'):
+        if new_username:
+            add_username(new_username)
+            st.success(f"Username {new_username} aggiunto.")
+        else:
+            st.error("Inserisci un nome utente valido.")
+
+    # Sezione per rimuovere un username
+    remove_username_input = st.text_input('Rimuovi un username di Instagram:')
+    if st.button('Rimuovi'):
+        if remove_username_input:
+            remove_username(remove_username_input)
+            st.success(f"Username {remove_username_input} rimosso.")
+        else:
+            st.error("Inserisci un nome utente valido da rimuovere.")
+
+    # Visualizzazione degli username nel database
+    st.subheader("Username nel database")
     usernames = get_usernames()
-    if usernames:
-        # Barra di progresso
-        progress_bar = st.progress(0)
-        total_usernames = len(usernames)
-        
-        # Visualizza i risultati
-        for idx, username in enumerate(usernames):
-            post_date = get_last_post_date(username)
-            if post_date:
-                days_passed = days_since_post(post_date)
-                if is_older_than_week(days_passed):
-                    st.markdown(f"<p style='color:red;'>Sono passati {days_passed} giorni dall'ultimo post di {username}.</p>", unsafe_allow_html=True)
-                else:
-                    st.write(f"Sono passati {days_passed} giorni dall'ultimo post di {username}.")
-            else:
-                st.write(f"Non ci sono post recenti per {username} (negli ultimi 2 mesi).")
+    st.write(usernames)
+
+# Colonna centrale per i risultati del controllo
+with col2:
+    # Bottone per eseguire il controllo degli username nel database
+    if st.button('Controlla i profili'):
+        usernames = get_usernames()
+        if usernames:
+            st.markdown('<div class="results-grid">', unsafe_allow_html=True)
             
-            # Aggiorna la barra di progresso
-            progress_bar.progress((idx + 1) / total_usernames)
-    else:
-        st.write("Non ci sono username nel database.")
+            # Visualizza i risultati
+            for username in usernames:
+                post_date = get_last_post_date(username)
+                if post_date:
+                    days_passed = days_since_post(post_date)
+                    if is_older_than_week(days_passed):
+                        st.markdown(f'<div class="result-box red-box">{username}: {days_passed} giorni</div>', unsafe_allow_html=True)
+                    else:
+                        st.markdown(f'<div class="result-box green-box">{username}: {days_passed} giorni</div>', unsafe_allow_html=True)
+                else:
+                    st.markdown(f'<div class="result-box red-box">{username}: Nessun post recente</div>', unsafe_allow_html=True)
+                    
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.write("Non ci sono username nel database.")
+
