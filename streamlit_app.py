@@ -25,9 +25,13 @@ def get_last_post_date(username, loader):
     except Exception as e:
         return None
 
+# Funzione per calcolare i giorni passati dall'ultimo post
+def days_since_post(date):
+    return (datetime.now() - date).days
+
 # Funzione per controllare se la data è più vecchia di una settimana
-def is_older_than_week(date):
-    return date < datetime.now() - timedelta(weeks=1)
+def is_older_than_week(days_passed):
+    return days_passed > 7
 
 # Creazione dell'interfaccia con Streamlit
 st.title('Controlla gli ultimi post su Instagram')
@@ -48,11 +52,12 @@ if st.button('Controlla'):
         for username in usernames:
             post_date = get_last_post_date(username, L)
             if post_date:
-                if is_older_than_week(post_date):
-                    st.markdown(f"<p style='color:red;'>L'ultimo post di {username} è stato pubblicato il {post_date.strftime('%d %B %Y, %H:%M:%S')}</p>", unsafe_allow_html=True)
+                days_passed = days_since_post(post_date)
+                if is_older_than_week(days_passed):
+                    st.markdown(f"<p style='color:red;'>{username}: {days_passed} giorni dall'ultimo post</p>", unsafe_allow_html=True)
                 else:
-                    st.write(f"L'ultimo post di {username} è stato pubblicato il {post_date.strftime('%d %B %Y, %H:%M:%S')}")
+                    st.write(f"{username}: {days_passed} giorni dall'ultimo post")
             else:
-                st.write(f"Non ci sono post recenti per {username} (negli ultimi 2 mesi).")
+                st.write(f"{username}: Nessun post recente (negli ultimi 2 mesi).")
     else:
         st.write("Per favore, inserisci almeno un nome utente.")
