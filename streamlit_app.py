@@ -15,22 +15,13 @@ usernames = [
 # Funzione per ottenere la data dell'ultimo post pubblicato negli ultimi 2 mesi
 def get_last_post_date(username, loader):
     try:
-        # Carica il profilo Instagram
         profile = instaloader.Profile.from_username(loader.context, username)
-        
-        # Ottiene i post del profilo
         posts = profile.get_posts()
-        
-        # Imposta la data limite a 2 mesi fa
         two_months_ago = datetime.now() - timedelta(days=60)
-        
-        # Cerca il post più recente che sia stato pubblicato negli ultimi 2 mesi
         for post in posts:
             if post.date >= two_months_ago:
                 return post.date
-        
-        return None  # Nessun post recente trovato
-
+        return None
     except Exception as e:
         return None
 
