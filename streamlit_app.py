@@ -3,6 +3,15 @@ import instaloader
 import streamlit as st
 from datetime import datetime, timedelta
 
+# Lista di profili da controllare
+usernames = [
+    "hotelbellavistacavalese", "olimpionicohotel", "fondazioneFiemmePer", 
+    "spartansgymasd", "carpenteria_bonelli", "zambonilattonerie", "radiofiemme", 
+    "socialabtrentino", "elcalderoncavalese", "kaiserstubecanazei", "kaiserkellercanazei", 
+    "hexenklub", "bertignoll1910", "chalet44alpinelounge", "poldopub.predazzo", 
+    "in.treska", "carpanospeck", "osteria_da_carpano", "coopcavalese"
+]
+
 # Funzione per ottenere la data dell'ultimo post pubblicato negli ultimi 2 mesi
 def get_last_post_date(username, loader):
     try:
@@ -33,31 +42,59 @@ def days_since_post(date):
 def is_older_than_week(days_passed):
     return days_passed > 7
 
-# Creazione dell'interfaccia con Streamlit
-st.title('Controlla gli ultimi post su Instagram')
+# Stile personalizzato per il titolo e il pulsante
+st.markdown("""
+    <style>
+    .main-title {
+        text-align: center;
+        font-size: 48px;
+        font-weight: bold;
+        color: #8e6d7a;
+    }
+    .center-button {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    .red-text {
+        color: #FF6347;
+        font-weight: bold;
+    }
+    .green-text {
+        color: #90EE90;
+        font-weight: bold;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-# Input per gli username
-usernames_input = st.text_input('Inserisci gli username di Instagram separati da virgola:')
+# Titolo principale
+st.markdown('<div class="main-title">Socialab Check Status</div>', unsafe_allow_html=True)
 
-# Bottone per eseguire il controllo
-if st.button('Controlla'):
-    if usernames_input:
+# Bottone centrato per eseguire il controllo
+with st.container():
+    st.markdown('<div class="center-button">', unsafe_allow_html=True)
+    if st.button('Controlla'):
+        st.markdown('</div>', unsafe_allow_html=True)
+
         # Crea l'istanza di Instaloader senza autenticazione
         L = instaloader.Instaloader()
-        
-        # Split degli username separati da virgola
-        usernames = [username.strip() for username in usernames_input.split(',')]
-        
+
+        # Barra di stato
+        progress = st.progress(0)
+        total = len(usernames)
+
         # Visualizza i risultati
-        for username in usernames:
+        for idx, username in enumerate(usernames):
             post_date = get_last_post_date(username, L)
             if post_date:
                 days_passed = days_since_post(post_date)
                 if is_older_than_week(days_passed):
-                    st.markdown(f"<p style='color:red;'>{username}: {days_passed} giorni dall'ultimo post</p>", unsafe_allow_html=True)
+                    st.markdown(f"<p class='red-text'>{username}: {days_passed} giorni dall'ultimo post</p>", unsafe_allow_html=True)
                 else:
-                    st.write(f"{username}: {days_passed} giorni dall'ultimo post")
+                    st.markdown(f"<p class='green-text'>{username}: {days_passed} giorni dall'ultimo post</p>", unsafe_allow_html=True)
             else:
-                st.write(f"{username}: Nessun post recente (negli ultimi 2 mesi).")
-    else:
-        st.write("Per favore, inserisci almeno un nome utente.")
+                st.markdown(f"<p class='red-text'>{username}: Nessun post recente (negli ultimi 2 mesi)</p>", unsafe_allow_html=True)
+
+            # Aggiornamento della barra di caricamento
+            progress.progress((idx + 1) / total)
