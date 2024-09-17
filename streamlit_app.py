@@ -2,6 +2,8 @@ import pandas as pd
 import instaloader
 import streamlit as st
 from datetime import datetime, timedelta
+import time
+import random
 
 # Lista di profili da controllare
 usernames = [
@@ -14,16 +16,27 @@ usernames = [
 
 # Funzione per ottenere la data dell'ultimo post pubblicato negli ultimi 2 mesi
 def get_last_post_date(username, loader):
-    try:
-        profile = instaloader.Profile.from_username(loader.context, username)
-        posts = profile.get_posts()
-        two_months_ago = datetime.now() - timedelta(days=60)
-        for post in posts:
-            if post.date >= two_months_ago:
-                return post.date
-        return None
-    except Exception as e:
-        return None
+    attempt = 0
+    max_attempts = 3  # Numero massimo di tentativi
+    while attempt < max_attempts:
+        try:
+            profile = instaloader.Profile.from_username(loader.context, username)
+            posts = profile.get_posts()
+            two_months_ago = datetime.now() - timedelta(days=60)
+            for post in posts:
+                if post.date >= two_months_ago:
+                    return post.date
+            return None
+        except instaloader.exceptions.ConnectionException:
+            # Backoff esponenziale per gestire problemi di connessione
+            attempt += 1
+            wait_time = 2 ** attempt + random.uniform(1, 3)  # Attendi tra 1 e 3 secondi
+            time.sleep(wait_time)
+        except Exception as e:
+            # Stampa o registra l'errore per debug
+            print(f"Errore nel recupero dei dati per {username}: {e}")
+            return None
+    return None
 
 # Funzione per calcolare i giorni passati dall'ultimo post
 def days_since_post(date):
@@ -77,6 +90,9 @@ with st.container():
 
         # Visualizza i risultati
         for idx, username in enumerate(usernames):
+            # Applica un ritardo casuale tra le richieste per evitare di sovraccaricare i server di Instagram
+            time.sleep(random.uniform(4, 6))  # Attendi tra 2 e 4 secondi
+
             post_date = get_last_post_date(username, L)
             if post_date:
                 days_passed = days_since_post(post_date)
