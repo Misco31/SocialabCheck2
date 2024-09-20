@@ -1,72 +1,104 @@
-import instaloader
-import streamlit as st
-from datetime import datetime, timedelta
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
 import time
 import random
 
-# Funzione per autenticarsi su Instagram
-def login_instaloader(username, password):
-    L = instaloader.Instaloader()
-    try:
-        L.login(username, password)
-        return L
-    except instaloader.exceptions.LoginException as e:
-        st.error(f"Errore di login: {e}")
-        return None
+# Configurazione Selenium e browser
+def setup_driver():
+    options = webdriver.ChromeOptions()
+    options.add_argument("--start-maximized")
+    driver = webdriver.Chrome(executable_path="chromedriver", options=options)
+    return driver
 
-# Funzione per ottenere la data dell'ultimo post pubblicato negli ultimi 2 mesi
-def get_last_post_date(username, loader):
+# Funzione per simulare una digitazione lenta
+def slow_typing(element, text, delay_min=0.1, delay_max=0.3):
+    for char in text:
+        element.send_keys(char)
+        time.sleep(random.uniform(delay_min, delay_max))  # Simula digitazione umana
+
+# Funzione per il login su Instagram
+def instagram_login(driver, username, password):
+    driver.get('https://www.instagram.com/accounts/login/')
+    time.sleep(random.uniform(5, 8))  # Attesa per il caricamento della pagina
+    
+    # Trova gli elementi per l'inserimento di username e password
+    username_input = driver.find_element_by_name("username")
+    password_input = driver.find_element_by_name("password")
+    
+    # Inserisci le credenziali con digitazione lenta
+    slow_typing(username_input, username)
+    time.sleep(random.uniform(2, 4))  # Ritardo casuale
+    
+    slow_typing(password_input, password)
+    time.sleep(random.uniform(1, 3))  # Ritardo
+    
+    # Clicca sul pulsante di login
+    password_input.send_keys(Keys.RETURN)
+    time.sleep(random.uniform(8, 12))  # Attesa per il login
+
+# Funzione per navigare al profilo e raccogliere informazioni
+def get_last_post_date(driver, username):
+    driver.get(f'https://www.instagram.com/{username}/')
+    time.sleep(random.uniform(5, 9))  # Attesa per il caricamento del profilo
+    
+    # Scorri la pagina per simulare l'interazione umana
+    for _ in range(random.randint(1, 3)):  # Scroll casuale tra 1 e 3 volte
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(random.uniform(2, 5))  # Pausa dopo lo scroll
+    
+    # Estrai la data dell'ultimo post
     try:
-        profile = instaloader.Profile.from_username(loader.context, username)
-        posts = profile.get_posts()
-        two_months_ago = datetime.now() - timedelta(days=60)
-        for post in posts:
-            if post.date >= two_months_ago:
-                return post.date
-        return None
+        # Trova la data del primo post nel profilo (potrebbe essere necessario trovare l'elemento corretto)
+        post_date_element = driver.find_element_by_css_selector('time')  # Selettore per la data del post
+        post_date = post_date_element.get_attribute("datetime")  # Estrai l'attributo datetime
+        
+        print(f"L'ultimo post di {username} è stato pubblicato il {post_date}")
+        return post_date
     except Exception as e:
-        st.error(f"Errore nel recupero dei dati per {username}: {e}")
+        print(f"Errore durante la raccolta dei dati per {username}: {e}")
         return None
 
-# Funzione per calcolare i giorni passati dall'ultimo post
-def days_since_post(date):
-    return (datetime.now() - date).days
+# Funzione per simulare ritardi casuali
+def random_delay(min_sec, max_sec):
+    time.sleep(random.uniform(min_sec, max_sec))
 
-# Funzione per controllare se la data è più vecchia di una settimana
-def is_older_than_week(days_passed):
-    return days_passed > 7
+# Funzione principale per eseguire il controllo su più profili
+def monitor_profiles(username, password, profile_list):
+    # Imposta il driver del browser
+    driver = setup_driver()
+    
+    # Esegui il login su Instagram
+    instagram_login(driver, username, password)
+    
+    # Controlla ogni profilo nella lista
+    for profile in profile_list:
+        print(f"Controllo il profilo: {profile}")
+        post_date = get_last_post_date(driver, profile)
+        if post_date:
+            print(f"Ultimo post di {profile}: {post_date}")
+        else:
+            print(f"Non è stato possibile ottenere la data dell'ultimo post per {profile}")
+        
+        # Introduci un ritardo casuale prima di passare al profilo successivo
+        random_delay(15, 30)  # Ritardo più lungo per sembrare naturale
+    
+    # Chiudi il browser alla fine
+    driver.quit()
 
-# Interfaccia Streamlit per inserire credenziali
-st.title('Socialab Instagram Checker')
-
-# Input per username e password
-insta_user = st.text_input("Inserisci il tuo username Instagram")
-insta_pass = st.text_input("Inserisci la tua password Instagram", type="password")
-
-if st.button("Accedi e Controlla"):
-    if insta_user and insta_pass:
-        # Autenticazione senza proxy (VPN instrada il traffico)
-        L = login_instaloader(insta_user, insta_pass)
-
-        if L:
-            # Barra di stato
-            progress = st.progress(0)
-            total = len(usernames)
-
-            # Visualizza i risultati
-            for idx, username in enumerate(usernames):
-                # Ritardo casuale maggiore per evitare di sovraccaricare i server di Instagram
-                time.sleep(random.uniform(6, 10))  # Attendi tra 6 e 10 secondi
-
-                post_date = get_last_post_date(username, L)
-                if post_date:
-                    days_passed = days_since_post(post_date)
-                    if is_older_than_week(days_passed):
-                        st.markdown(f"<p class='red-text'>{username}: {days_passed} giorni dall'ultimo post</p>", unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"<p class='green-text'>{username}: {days_passed} giorni dall'ultimo post</p>", unsafe_allow_html=True)
-                else:
-                    st.markdown(f"<p class='red-text'>{username}: Nessun post recente (negli ultimi 2 mesi)</p>", unsafe_allow_html=True)
+# Esempio di utilizzo
+if __name__ == "__main__":
+    # Dati di login e lista dei profili da monitorare
+    instagram_username = "tuo_username_instagram"
+    instagram_password = "tua_password_instagram"
+    
+    profiles_to_check = [
+        "hotelbellavistacavalese", "olimpionicohotel", "fondazioneFiemmePer", 
+        "spartansgymasd", "carpenteria_bonelli", "zambonilattonerie", "radiofiemme", 
+        "socialabtrentino", "elcalderoncavalese"
+    ]
+    
+    # Avvia il monitoraggio dei profili
+    monitor_profiles(instagram_username, instagram_password, profiles_to_check)
 
                 # Aggiornamento della barra di caricamento
                 progress.progress((idx + 1) / total)
