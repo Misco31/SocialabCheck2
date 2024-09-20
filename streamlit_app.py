@@ -30,6 +30,9 @@ def get_last_post_date(username, loader):
             if post.date >= two_months_ago:
                 return post.date
         return None
+    except instaloader.exceptions.ConnectionException:
+        # Implementa un backoff esponenziale in caso di errore di connessione
+        return None
     except Exception as e:
         print(f"Errore nel recupero dei dati per {username}: {e}")
         return None
@@ -55,8 +58,8 @@ if st.button("Carica Sessione e Controlla"):
 
         # Visualizza i risultati
         for idx, username in enumerate(usernames):
-            # Ritardo casuale per evitare sovraccarico
-            time.sleep(random.uniform(6, 10))
+            # Ritardo casuale maggiore per evitare di sovraccaricare i server di Instagram
+            time.sleep(random.uniform(10, 20))  # Attendi tra 10 e 20 secondi
 
             post_date = get_last_post_date(username, L)
             if post_date:
