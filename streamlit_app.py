@@ -45,43 +45,21 @@ def days_since_post(date):
 def is_older_than_week(days_passed):
     return days_passed > 7
 
-# Stile personalizzato per il titolo e il pulsante
-st.markdown("""
-    <style>
-    .main-title {
-        text-align: center;
-        font-size: 48px;
-        font-weight: bold;
-        color: #8e6d7a;
-    }
-    .center-button {
-        display: flex;
-        justify-content: center;
-        margin-top: 20px;
-        margin-bottom: 20px;
-    }
-    .red-text {
-        color: #FF6347;
-        font-weight: bold;
-    }
-    .green-text {
-        color: #90EE90;
-        font-weight: bold;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# Funzione per autenticarsi con Instagram
+def login_instaloader(username, password):
+    L = instaloader.Instaloader()
+    L.login(username, password)
+    return L
 
-# Titolo principale
-st.markdown('<div class="main-title">Socialab Check Status</div>', unsafe_allow_html=True)
+# Interfaccia Streamlit per inserire credenziali
+st.title('Socialab Instagram Checker')
 
-# Bottone centrato per eseguire il controllo
-with st.container():
-    st.markdown('<div class="center-button">', unsafe_allow_html=True)
-    if st.button('Controlla'):
-        st.markdown('</div>', unsafe_allow_html=True)
+insta_user = st.text_input("Inserisci il tuo username Instagram")
+insta_pass = st.text_input("Inserisci la tua password Instagram", type="password")
 
-        # Crea l'istanza di Instaloader senza autenticazione
-        L = instaloader.Instaloader()
+if st.button("Accedi e Controlla"):
+    if insta_user and insta_pass:
+        L = login_instaloader(insta_user, insta_pass)
 
         # Barra di stato
         progress = st.progress(0)
@@ -104,3 +82,5 @@ with st.container():
 
             # Aggiornamento della barra di caricamento
             progress.progress((idx + 1) / total)
+    else:
+        st.error("Per favore, inserisci username e password validi.")
