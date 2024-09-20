@@ -14,15 +14,6 @@ def login_instaloader(username, password):
         st.error(f"Errore di login: {e}")
         return None
 
-# Lista di profili da controllare
-usernames = [
-    "hotelbellavistacavalese", "olimpionicohotel", "fondazioneFiemmePer", 
-    "spartansgymasd", "carpenteria_bonelli", "zambonilattonerie", "radiofiemme", 
-    "socialabtrentino", "elcalderoncavalese", "kaiserstubecanazei", "kaiserkellercanazei", 
-    "hexenklub", "bertignoll1910", "chalet44alpinelounge", "poldopub.predazzo", 
-    "in.treska", "carpanospeck", "osteria_da_carpano", "coopcavalese"
-]
-
 # Funzione per ottenere la data dell'ultimo post pubblicato negli ultimi 2 mesi
 def get_last_post_date(username, loader):
     try:
@@ -54,6 +45,7 @@ insta_pass = st.text_input("Inserisci la tua password Instagram", type="password
 
 if st.button("Accedi e Controlla"):
     if insta_user and insta_pass:
+        # Autenticazione senza proxy (VPN instrada il traffico)
         L = login_instaloader(insta_user, insta_pass)
 
         if L:
