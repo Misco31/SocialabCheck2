@@ -3,13 +3,29 @@ import streamlit as st
 from datetime import datetime, timedelta
 import time
 import random
+import os
+
+# Funzione per autenticarsi su Instagram e salvare la sessione
+def login_instaloader(username, password):
+    L = instaloader.Instaloader()
+    try:
+        L.login(username, password)
+        # Salva la sessione dopo il login
+        L.save_session_to_file(f"session-{username}")
+        return L
+    except instaloader.exceptions.LoginException as e:
+        st.error(f"Errore di login: {e}")
+        return None
 
 # Funzione per caricare la sessione salvata
 def load_instaloader_session(username):
     L = instaloader.Instaloader()
-    # Carica la sessione salvata
-    L.load_session_from_file(username)
-    return L
+    try:
+        L.load_session_from_file(f"session-{username}")
+        return L
+    except FileNotFoundError:
+        st.warning(f"Nessuna sessione salvata trovata per {username}. Effettua il login.")
+        return None
 
 # Lista di profili da controllare
 usernames = [
@@ -30,11 +46,8 @@ def get_last_post_date(username, loader):
             if post.date >= two_months_ago:
                 return post.date
         return None
-    except instaloader.exceptions.ConnectionException:
-        # Implementa un backoff esponenziale in caso di errore di connessione
-        return None
     except Exception as e:
-        print(f"Errore nel recupero dei dati per {username}: {e}")
+        st.error(f"Errore nel recupero dei dati per {username}: {e}")
         return None
 
 # Funzione per calcolare i giorni passati dall'ultimo post
@@ -45,34 +58,46 @@ def days_since_post(date):
 def is_older_than_week(days_passed):
     return days_passed > 7
 
-# Interfaccia Streamlit per il controllo
+# Interfaccia Streamlit per inserire credenziali
 st.title('Socialab Instagram Checker')
 
-if st.button("Carica Sessione e Controlla"):
-    try:
-        L = load_instaloader_session("tuo_username_instagram")
+# Input per username
+insta_user = st.text_input("Inserisci il tuo username Instagram")
 
-        # Barra di stato
-        progress = st.progress(0)
-        total = len(usernames)
+# Controlla se esiste una sessione salvata
+session_exists = os.path.exists(f"session-{insta_user}")
 
-        # Visualizza i risultati
-        for idx, username in enumerate(usernames):
-            # Ritardo casuale maggiore per evitare di sovraccaricare i server di Instagram
-            time.sleep(random.uniform(10, 20))  # Attendi tra 10 e 20 secondi
+# Carica la sessione se esiste
+L = None
+if session_exists:
+    if st.button("Carica sessione salvata"):
+        L = load_instaloader_session(insta_user)
+else:
+    insta_pass = st.text_input("Inserisci la tua password Instagram", type="password")
+    if st.button("Accedi e Salva Sessione"):
+        if insta_user and insta_pass:
+            L = login_instaloader(insta_user, insta_pass)
 
-            post_date = get_last_post_date(username, L)
-            if post_date:
-                days_passed = days_since_post(post_date)
-                if is_older_than_week(days_passed):
-                    st.markdown(f"<p class='red-text'>{username}: {days_passed} giorni dall'ultimo post</p>", unsafe_allow_html=True)
-                else:
-                    st.markdown(f"<p class='green-text'>{username}: {days_passed} giorni dall'ultimo post</p>", unsafe_allow_html=True)
+if L:
+    # Barra di stato
+    progress = st.progress(0)
+    total = len(usernames)
+
+    # Visualizza i risultati
+    for idx, username in enumerate(usernames):
+        # Ritardo casuale maggiore per evitare di sovraccaricare i server di Instagram
+        time.sleep(random.uniform(6, 10))  # Attendi tra 6 e 10 secondi
+
+        post_date = get_last_post_date(username, L)
+        if post_date:
+            days_passed = days_since_post(post_date)
+            if is_older_than_week(days_passed):
+                st.markdown(f"<p class='red-text'>{username}: {days_passed} giorni dall'ultimo post</p>", unsafe_allow_html=True)
             else:
-                st.markdown(f"<p class='red-text'>{username}: Nessun post recente (negli ultimi 2 mesi)</p>", unsafe_allow_html=True)
+                st.markdown(f"<p class='green-text'>{username}: {days_passed} giorni dall'ultimo post</p>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<p class='red-text'>{username}: Nessun post recente (negli ultimi 2 mesi)</p>", unsafe_allow_html=True)
 
-            # Aggiornamento della barra di caricamento
-            progress.progress((idx + 1) / total)
+        # Aggiornamento della barra di caricamento
+        progress.progress((idx + 1) / total)
 
-    except Exception as e:
-        st.error(f"Errore durante il caricamento della sessione: {e}")
