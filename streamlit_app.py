@@ -1,4 +1,3 @@
-import pandas as pd
 import instaloader
 import streamlit as st
 from datetime import datetime, timedelta
@@ -30,7 +29,7 @@ def get_last_post_date(username, loader):
         except instaloader.exceptions.ConnectionException:
             # Backoff esponenziale per gestire problemi di connessione
             attempt += 1
-            wait_time = 2 ** attempt + random.uniform(1, 3)  # Attendi tra 1 e 3 secondi
+            wait_time = 2 ** attempt + random.uniform(3, 5)  # Attendi tra 3 e 5 secondi
             time.sleep(wait_time)
         except Exception as e:
             # Stampa o registra l'errore per debug
@@ -90,8 +89,8 @@ with st.container():
 
         # Visualizza i risultati
         for idx, username in enumerate(usernames):
-            # Applica un ritardo casuale tra le richieste per evitare di sovraccaricare i server di Instagram
-            time.sleep(random.uniform(4, 6))  # Attendi tra 2 e 4 secondi
+            # Applica un ritardo casuale maggiore tra le richieste per evitare di sovraccaricare i server di Instagram
+            time.sleep(random.uniform(6, 10))  # Attendi tra 6 e 10 secondi
 
             post_date = get_last_post_date(username, L)
             if post_date:
