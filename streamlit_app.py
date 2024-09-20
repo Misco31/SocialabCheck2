@@ -3,28 +3,15 @@ import streamlit as st
 from datetime import datetime, timedelta
 import time
 import random
-import os
 
-# Funzione per autenticarsi su Instagram e salvare la sessione
+# Funzione per autenticarsi su Instagram
 def login_instaloader(username, password):
     L = instaloader.Instaloader()
     try:
         L.login(username, password)
-        # Salva la sessione dopo il login
-        L.save_session_to_file(f"session-{username}")
         return L
     except instaloader.exceptions.LoginException as e:
         st.error(f"Errore di login: {e}")
-        return None
-
-# Funzione per caricare la sessione salvata
-def load_instaloader_session(username):
-    L = instaloader.Instaloader()
-    try:
-        L.load_session_from_file(f"session-{username}")
-        return L
-    except FileNotFoundError:
-        st.warning(f"Nessuna sessione salvata trovata per {username}. Effettua il login.")
         return None
 
 # Lista di profili da controllare
@@ -61,43 +48,35 @@ def is_older_than_week(days_passed):
 # Interfaccia Streamlit per inserire credenziali
 st.title('Socialab Instagram Checker')
 
-# Input per username
+# Input per username e password
 insta_user = st.text_input("Inserisci il tuo username Instagram")
+insta_pass = st.text_input("Inserisci la tua password Instagram", type="password")
 
-# Controlla se esiste una sessione salvata
-session_exists = os.path.exists(f"session-{insta_user}")
+if st.button("Accedi e Controlla"):
+    if insta_user and insta_pass:
+        L = login_instaloader(insta_user, insta_pass)
 
-# Carica la sessione se esiste
-L = None
-if session_exists:
-    if st.button("Carica sessione salvata"):
-        L = load_instaloader_session(insta_user)
-else:
-    insta_pass = st.text_input("Inserisci la tua password Instagram", type="password")
-    if st.button("Accedi e Salva Sessione"):
-        if insta_user and insta_pass:
-            L = login_instaloader(insta_user, insta_pass)
+        if L:
+            # Barra di stato
+            progress = st.progress(0)
+            total = len(usernames)
 
-if L:
-    # Barra di stato
-    progress = st.progress(0)
-    total = len(usernames)
+            # Visualizza i risultati
+            for idx, username in enumerate(usernames):
+                # Ritardo casuale maggiore per evitare di sovraccaricare i server di Instagram
+                time.sleep(random.uniform(6, 10))  # Attendi tra 6 e 10 secondi
 
-    # Visualizza i risultati
-    for idx, username in enumerate(usernames):
-        # Ritardo casuale maggiore per evitare di sovraccaricare i server di Instagram
-        time.sleep(random.uniform(6, 10))  # Attendi tra 6 e 10 secondi
+                post_date = get_last_post_date(username, L)
+                if post_date:
+                    days_passed = days_since_post(post_date)
+                    if is_older_than_week(days_passed):
+                        st.markdown(f"<p class='red-text'>{username}: {days_passed} giorni dall'ultimo post</p>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"<p class='green-text'>{username}: {days_passed} giorni dall'ultimo post</p>", unsafe_allow_html=True)
+                else:
+                    st.markdown(f"<p class='red-text'>{username}: Nessun post recente (negli ultimi 2 mesi)</p>", unsafe_allow_html=True)
 
-        post_date = get_last_post_date(username, L)
-        if post_date:
-            days_passed = days_since_post(post_date)
-            if is_older_than_week(days_passed):
-                st.markdown(f"<p class='red-text'>{username}: {days_passed} giorni dall'ultimo post</p>", unsafe_allow_html=True)
-            else:
-                st.markdown(f"<p class='green-text'>{username}: {days_passed} giorni dall'ultimo post</p>", unsafe_allow_html=True)
-        else:
-            st.markdown(f"<p class='red-text'>{username}: Nessun post recente (negli ultimi 2 mesi)</p>", unsafe_allow_html=True)
-
-        # Aggiornamento della barra di caricamento
-        progress.progress((idx + 1) / total)
-
+                # Aggiornamento della barra di caricamento
+                progress.progress((idx + 1) / total)
+    else:
+        st.error("Per favore, inserisci username e password validi.")
